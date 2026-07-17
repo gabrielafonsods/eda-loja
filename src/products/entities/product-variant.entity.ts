@@ -34,6 +34,12 @@ export class ProductVariant {
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   unitPrice: number;
 
+  // Quanto custou comprar 1 unidade (do fornecedor) — usado pra calcular
+  // lucro/faturamento líquido nos relatórios. Opcional: se não preencher,
+  // o relatório trata o custo desse item como zero.
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  costPrice?: number;
+
   // Quantas unidades tem em 1 fardo. Deixe em branco se esse produto
   // não é vendido em fardo (só unidade solta).
   @Column({ type: 'int', nullable: true })
