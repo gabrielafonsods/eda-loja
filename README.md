@@ -1,10 +1,7 @@
 # eda-frontend
 
 Site da **Embalagens Dos Anjos** — catálogo de produtos com carrinho e
-finalização de pedido pelo WhatsApp. Construído em cima do template
-[Next.js Commerce](https://vercel.com/templates/next.js/nextjs-commerce),
-com a integração de e-commerce da Shopify removida e substituída pela
-conexão com o `eda-backend`.
+finalização de pedido pelo WhatsApp.
 
 ## O que esse site faz
 
