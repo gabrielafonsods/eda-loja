@@ -38,7 +38,14 @@ export type ProductVariant = {
     name: string;
     value: string;
   }[];
+  // Mantido por compatibilidade com componentes existentes (ex: variant-selector)
   price: Money;
+  // Preço vendendo 1 unidade solta
+  unitPrice: Money;
+  // Preenchido só se esse item também é vendido em fardo fechado
+  fardoSize?: number;
+  fardoPrice?: Money;
+  stockQuantity: number;
 };
 
 export type Product = {
@@ -70,14 +77,25 @@ export type Collection = {
   updatedAt: string;
 };
 
-// Formato que vem do eda-backend (ver módulo de produtos)
+export type Page = {
+  id: string;
+  title: string;
+  handle: string;
+  body: string;
+  bodySummary: string;
+  seo?: SEO;
+  createdAt: string;
+  updatedAt: string;
+};
+
+// Formato que vem do eda-backend
 export type ApiProductVariant = {
   id: string;
-  unitType: "unit" | "pack" | "box";
-  quantityPerUnit: number;
-  price: string; // decimal do Postgres vem como string
   stockQuantity: number;
   minStock: number;
+  unitPrice: string; // decimal do Postgres vem como string
+  fardoSize?: number;
+  fardoPrice?: string;
   sku?: string;
   attributes?: Record<string, string>;
 };
@@ -94,13 +112,4 @@ export type ApiProduct = {
   updatedAt: string;
 };
 
-export type Page = {
-  id: string;
-  title: string;
-  handle: string;
-  body: string;
-  bodySummary: string;
-  seo?: SEO;
-  createdAt: string;
-  updatedAt: string;
-};
+export type SaleType = "unit" | "fardo";

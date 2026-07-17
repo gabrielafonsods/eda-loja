@@ -6,9 +6,10 @@ import {
   Page,
   Product,
   ProductOption,
+  SaleType,
 } from "./types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 const PLACEHOLDER_IMAGE = {
   url: "/placeholder-product.png",
@@ -17,74 +18,53 @@ const PLACEHOLDER_IMAGE = {
   height: 800,
 };
 
-// Rótulo amigável pro tipo de embalagem
-const unitTypeLabel: Record<string, string> = {
-  unit: "Unidade",
-  pack: "Pacote",
-  box: "Caixa",
-};
-
-function variantTitle(variant: ApiProductVariant): string {
-  const parts: string[] = [];
-  if (variant.attributes) {
-    for (const value of Object.values(variant.attributes)) {
-      parts.push(value);
-    }
-  }
-  parts.push(
-    `${unitTypeLabel[variant.unitType] || variant.unitType} (${variant.quantityPerUnit})`
-  );
-  return parts.join(" - ");
-}
-
 function reshapeVariant(variant: ApiProductVariant) {
-  const selectedOptions = [
-    ...Object.entries(variant.attributes || {}).map(([name, value]) => ({
-      name,
-      value,
-    })),
-    { name: "Tipo", value: unitTypeLabel[variant.unitType] || variant.unitType },
-  ];
+  const selectedOptions = Object.entries(variant.attributes || {}).map(
+    ([name, value]) => ({ name, value }),
+  );
+  const title =
+    selectedOptions.length > 0
+      ? selectedOptions.map((o) => o.value).join(" - ")
+      : "Padrão";
+
+  const unitPrice = {
+    amount: Number(variant.unitPrice).toFixed(2),
+    currencyCode: "BRL",
+  };
 
   return {
     id: variant.id,
-    title: variantTitle(variant),
+    title,
     availableForSale: variant.stockQuantity > 0,
     selectedOptions,
-    price: {
-      amount: Number(variant.price).toFixed(2),
-      currencyCode: "BRL",
-    },
+    price: unitPrice,
+    unitPrice,
+    fardoSize: variant.fardoSize,
+    fardoPrice: variant.fardoPrice
+      ? { amount: Number(variant.fardoPrice).toFixed(2), currencyCode: "BRL" }
+      : undefined,
+    stockQuantity: variant.stockQuantity,
   };
 }
 
 function reshapeProduct(product: ApiProduct): Product {
   const variants = product.variants.map(reshapeVariant);
-  const prices = product.variants.map((v) => Number(v.price));
+  const unitPrices = product.variants.map((v) => Number(v.unitPrice));
 
-  // Monta as opções (Cor, Número, Sabor, Tipo...) a partir de todas as variações
   const optionsMap = new Map<string, Set<string>>();
   for (const variant of product.variants) {
-    const attrs = {
-      ...variant.attributes,
-      Tipo: unitTypeLabel[variant.unitType] || variant.unitType,
-    };
-    for (const [name, value] of Object.entries(attrs)) {
+    for (const [name, value] of Object.entries(variant.attributes || {})) {
       if (!optionsMap.has(name)) optionsMap.set(name, new Set());
       optionsMap.get(name)!.add(value);
     }
   }
   const options: ProductOption[] = Array.from(optionsMap.entries()).map(
-    ([name, values]) => ({
-      id: name,
-      name,
-      values: Array.from(values),
-    })
+    ([name, values]) => ({ id: name, name, values: Array.from(values) }),
   );
 
   return {
     id: product.id,
-    handle: product.id, // sem slug próprio ainda; usa o id como identificador na URL
+    handle: product.id,
     availableForSale: product.variants.some((v) => v.stockQuantity > 0),
     title: product.name,
     description: product.description || "",
@@ -94,11 +74,11 @@ function reshapeProduct(product: ApiProduct): Product {
     options,
     priceRange: {
       minVariantPrice: {
-        amount: Math.min(...prices).toFixed(2),
+        amount: Math.min(...unitPrices).toFixed(2),
         currencyCode: "BRL",
       },
       maxVariantPrice: {
-        amount: Math.max(...prices).toFixed(2),
+        amount: Math.max(...unitPrices).toFixed(2),
         currencyCode: "BRL",
       },
     },
@@ -111,15 +91,13 @@ function reshapeProduct(product: ApiProduct): Product {
   };
 }
 
-async function apiFetch<T>(path: string): Promise<T> {
+async function apiFetch<T>(path: string, revalidate = 60): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
-    next: { revalidate: 60 }, // recarrega a lista a cada 60s
+    next: { revalidate },
   });
-
   if (!res.ok) {
     throw new Error(`Erro ao buscar ${path}: ${res.status}`);
   }
-
   return res.json();
 }
 
@@ -133,9 +111,7 @@ export async function getProducts({
   const products = await apiFetch<ApiProduct[]>("/products");
   const active = products.filter((p) => p.active);
   const filtered = query
-    ? active.filter((p) =>
-        p.name.toLowerCase().includes(query.toLowerCase())
-      )
+    ? active.filter((p) => p.name.toLowerCase().includes(query.toLowerCase()))
     : active;
   return filtered.map(reshapeProduct);
 }
@@ -164,7 +140,7 @@ export async function getCollectionProducts({
 export async function getCollections(): Promise<Collection[]> {
   const products = await getProducts({});
   const categories = Array.from(
-    new Set(products.map((p) => p.tags[0]).filter(Boolean))
+    new Set(products.map((p) => p.tags[0]).filter(Boolean)),
   ) as string[];
 
   return [
@@ -192,13 +168,20 @@ export async function getCollection(handle: string): Promise<Collection | undefi
   return collections.find((c) => c.handle === handle);
 }
 
-// Sem sistema de menu no backend ainda — menu fixo por enquanto
 export async function getMenu(_handle: string): Promise<Menu[]> {
   return [];
 }
 
+export async function getPage(_handle: string): Promise<Page | undefined> {
+  return undefined;
+}
+
+export async function getPages(): Promise<Page[]> {
+  return [];
+}
+
 export async function getProductRecommendations(
-  productId: string
+  productId: string,
 ): Promise<Product[]> {
   const product = await getProduct(productId);
   if (!product) return [];
@@ -208,10 +191,18 @@ export async function getProductRecommendations(
   return products.filter((p) => p.id !== productId).slice(0, 4);
 }
 
-export async function getPage(handle: string): Promise<Page | undefined> {
-  return undefined;
-}
-
-export async function getPages(): Promise<Page[]> {
-  return [];
+// Chamado do carrinho (client-side) ao enviar o pedido pelo WhatsApp —
+// registra o pedido como "pendente" no backend antes de abrir o WhatsApp.
+export async function createOrder(
+  items: { productVariantId: string; saleType: SaleType; quantity: number }[],
+): Promise<{ id: string }> {
+  const res = await fetch(`${API_URL}/orders`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ items }),
+  });
+  if (!res.ok) {
+    throw new Error(`Erro ao criar pedido: ${res.status}`);
+  }
+  return res.json();
 }

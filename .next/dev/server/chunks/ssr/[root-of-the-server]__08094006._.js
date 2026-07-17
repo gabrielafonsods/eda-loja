@@ -21,10 +21,12 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist
 ;
 const CartContext = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createContext"])(undefined);
 const STORAGE_KEY = "eda-cart";
+function lineKey(variantId, saleType) {
+    return `${variantId}:${saleType}`;
+}
 function CartProvider({ children }) {
     const [items, setItems] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])([]);
     const [hydrated, setHydrated] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(false);
-    // Carrega o carrinho salvo no navegador quando a página abre
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
         try {
             const saved = localStorage.getItem(STORAGE_KEY);
@@ -34,7 +36,6 @@ function CartProvider({ children }) {
         }
         setHydrated(true);
     }, []);
-    // Salva sempre que o carrinho mudar
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
         if (!hydrated) return;
         localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
@@ -44,9 +45,10 @@ function CartProvider({ children }) {
     ]);
     const addItem = (item, quantity = 1)=>{
         setItems((current)=>{
-            const existing = current.find((i)=>i.variantId === item.variantId);
+            const key = lineKey(item.variantId, item.saleType);
+            const existing = current.find((i)=>lineKey(i.variantId, i.saleType) === key);
             if (existing) {
-                return current.map((i)=>i.variantId === item.variantId ? {
+                return current.map((i)=>lineKey(i.variantId, i.saleType) === key ? {
                         ...i,
                         quantity: i.quantity + quantity
                     } : i);
@@ -60,15 +62,15 @@ function CartProvider({ children }) {
             ];
         });
     };
-    const removeItem = (variantId)=>{
-        setItems((current)=>current.filter((i)=>i.variantId !== variantId));
+    const removeItem = (variantId, saleType)=>{
+        setItems((current)=>current.filter((i)=>lineKey(i.variantId, i.saleType) !== lineKey(variantId, saleType)));
     };
-    const updateQuantity = (variantId, quantity)=>{
+    const updateQuantity = (variantId, saleType, quantity)=>{
         if (quantity <= 0) {
-            removeItem(variantId);
+            removeItem(variantId, saleType);
             return;
         }
-        setItems((current)=>current.map((i)=>i.variantId === variantId ? {
+        setItems((current)=>current.map((i)=>lineKey(i.variantId, i.saleType) === lineKey(variantId, saleType) ? {
                     ...i,
                     quantity
                 } : i));
@@ -87,7 +89,7 @@ function CartProvider({ children }) {
         children: children
     }, void 0, false, {
         fileName: "[project]/lib/cart-context.tsx",
-        lineNumber: 87,
+        lineNumber: 104,
         columnNumber: 5
     }, this);
 }

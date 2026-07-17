@@ -1,6 +1,6 @@
 var R=require("../../chunks/ssr/[turbopack]_runtime.js")("server/app/quem-somos/page.js")
 R.c("server/chunks/ssr/node_modules_next_dist_c22fa988._.js")
-R.c("server/chunks/ssr/[root-of-the-server]__904fb66e._.js")
+R.c("server/chunks/ssr/[root-of-the-server]__2445ea90._.js")
 R.c("server/chunks/ssr/node_modules_next_7bcdf150._.js")
 R.c("server/chunks/ssr/[root-of-the-server]__1bc3f7f4._.js")
 R.c("server/chunks/ssr/app_0ef037c1._.js")
