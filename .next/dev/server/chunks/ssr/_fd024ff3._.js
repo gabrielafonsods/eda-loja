@@ -204,7 +204,7 @@ async function createOrder(items) {
     return res.json();
 }
 }),
-"[project]/app/[page]/opengraph-image.tsx [app-rsc] (ecmascript)", ((__turbopack_context__) => {
+"[project]/app/search/[collection]/opengraph-image.tsx [app-rsc] (ecmascript)", ((__turbopack_context__) => {
 "use strict";
 
 __turbopack_context__.s([
@@ -216,33 +216,33 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$api$2f$index$2e$ts__$
 ;
 ;
 async function Image({ params }) {
-    const page = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$api$2f$index$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["getPage"])(params.page);
-    const title = page.seo?.title || page.title;
+    const collection = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$api$2f$index$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["getCollection"])(params.collection);
+    const title = collection?.seo?.title || collection?.title;
     return await (0, __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$opengraph$2d$image$2e$tsx__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["default"])({
         title
     });
 }
 }),
-"[project]/app/[page]/opengraph-image--metadata.js [app-rsc] (ecmascript)", ((__turbopack_context__) => {
+"[project]/app/search/[collection]/opengraph-image--metadata.js [app-rsc] (ecmascript)", ((__turbopack_context__) => {
 "use strict";
 
 __turbopack_context__.s([
     "default",
     ()=>__TURBOPACK__default__export__
 ]);
-var __TURBOPACK__imported__module__$5b$project$5d2f$app$2f5b$page$5d2f$opengraph$2d$image$2e$tsx__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/app/[page]/opengraph-image.tsx [app-rsc] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$search$2f5b$collection$5d2f$opengraph$2d$image$2e$tsx__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/app/search/[collection]/opengraph-image.tsx [app-rsc] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$lib$2f$metadata$2f$get$2d$metadata$2d$route$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/lib/metadata/get-metadata-route.js [app-rsc] (ecmascript)");
 ;
 ;
 const imageModule = {};
 async function __TURBOPACK__default__export__(props) {
     const { __metadata_id__: _, ...params } = await props.params;
-    const imageUrl = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$lib$2f$metadata$2f$get$2d$metadata$2d$route$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["fillMetadataSegment"])("/[page]", params, "opengraph-image");
+    const imageUrl = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$lib$2f$metadata$2f$get$2d$metadata$2d$route$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["fillMetadataSegment"])("/search/[collection]", params, "opengraph-image");
     function getImageMetadata(imageMetadata, idParam) {
         const data = {
             alt: imageMetadata.alt,
             type: imageMetadata.contentType || 'image/png',
-            url: imageUrl + (idParam ? '/' + idParam : '') + "?cf702c67403e2f70"
+            url: imageUrl + (idParam ? '/' + idParam : '') + "?3cedd628f8cb417b"
         };
         const { size } = imageMetadata;
         if (size) {
@@ -258,4 +258,4 @@ async function __TURBOPACK__default__export__(props) {
 }),
 ];
 
-//# sourceMappingURL=_db6ac21a._.js.map
+//# sourceMappingURL=_fd024ff3._.js.map
