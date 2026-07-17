@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProductsModule } from './products/products.module';
+import { OrdersModule } from './orders/orders.module';
+
 
 @Module({
   imports: [
@@ -12,6 +14,7 @@ import { ProductsModule } from './products/products.module';
       ssl: { rejectUnauthorized: false },
     }),
     ProductsModule,
+    OrdersModule,
   ],
 })
 export class AppModule {}
