@@ -7,12 +7,6 @@ import {
 } from 'typeorm';
 import { Product } from './product.entity';
 
-export enum UnitType {
-  UNIT = 'unit', // unidade avulsa
-  PACK = 'pack', // pacote (ex: pacote com 50 copos)
-  BOX = 'box', // caixa fechada (ex: caixa com 20 pacotes)
-}
-
 @Entity('product_variants')
 export class ProductVariant {
   @PrimaryGeneratedColumn('uuid')
@@ -27,29 +21,32 @@ export class ProductVariant {
   @Column()
   productId: string;
 
-  @Column({ type: 'enum', enum: UnitType, default: UnitType.UNIT })
-  unitType: UnitType;
-
-  // Quantidade contida nessa variação (ex: 50 para "pacote com 50")
-  @Column({ type: 'int', default: 1 })
-  quantityPerUnit: number;
-
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  price: number;
-
+  // Estoque SEMPRE em unidades — mesmo que ela venda por fardo,
+  // o fardo é só uma forma de vender várias unidades de uma vez.
   @Column({ type: 'int', default: 0 })
   stockQuantity: number;
 
-  // Estoque mínimo para disparar alerta de reposição
+  // Estoque mínimo (em unidades) para disparar alerta de reposição
   @Column({ type: 'int', default: 0 })
   minStock: number;
+
+  // Preço vendendo uma unidade solta
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  unitPrice: number;
+
+  // Quantas unidades tem em 1 fardo. Deixe em branco se esse produto
+  // não é vendido em fardo (só unidade solta).
+  @Column({ type: 'int', nullable: true })
+  fardoSize?: number;
+
+  // Preço vendendo 1 fardo fechado
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  fardoPrice?: number;
 
   @Column({ nullable: true, unique: true })
   sku?: string;
 
-  // Atributos flexíveis da variação, ex: { "Cor": "Azul", "Número": "5", "Sabor": "Menta" }
-  // Isso permite representar qualquer tipo de variação do catálogo (cores, tamanhos, sabores)
-  // sem precisar mudar a estrutura do banco quando novos tipos de atributo aparecerem.
+  // Ex: { "Cor": "Azul", "Sabor": "Menta" }
   @Column({ type: 'jsonb', nullable: true, default: {} })
   attributes?: Record<string, string>;
 }

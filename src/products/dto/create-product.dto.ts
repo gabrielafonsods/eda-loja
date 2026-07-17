@@ -4,27 +4,14 @@ import {
   IsBoolean,
   IsArray,
   ValidateNested,
-  IsEnum,
   IsInt,
   IsNumber,
   IsObject,
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { UnitType } from '../entities/product-variant.entity';
 
 export class CreateProductVariantDto {
-  @IsEnum(UnitType)
-  unitType: UnitType;
-
-  @IsInt()
-  @Min(1)
-  quantityPerUnit: number;
-
-  @IsNumber()
-  @Min(0)
-  price: number;
-
   @IsInt()
   @Min(0)
   stockQuantity: number;
@@ -34,11 +21,24 @@ export class CreateProductVariantDto {
   @IsOptional()
   minStock?: number;
 
+  @IsNumber()
+  @Min(0)
+  unitPrice: number;
+
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  fardoSize?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  fardoPrice?: number;
+
   @IsString()
   @IsOptional()
   sku?: string;
 
-  // Ex: { "Cor": "Azul", "Número": "5", "Sabor": "Menta" }
   @IsObject()
   @IsOptional()
   attributes?: Record<string, string>;

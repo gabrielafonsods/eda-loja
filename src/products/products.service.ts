@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
@@ -43,12 +43,36 @@ export class ProductsService {
     await this.productRepository.remove(product);
   }
 
-  // Retorna variações com estoque abaixo do mínimo definido
+  // Retorna variações com estoque (em unidades) abaixo do mínimo definido
   async lowStock(): Promise<ProductVariant[]> {
     return this.variantRepository
       .createQueryBuilder('variant')
       .leftJoinAndSelect('variant.product', 'product')
       .where('variant.stockQuantity <= variant.minStock')
       .getMany();
+  }
+
+  async findVariant(id: string): Promise<ProductVariant> {
+    const variant = await this.variantRepository.findOne({ where: { id } });
+    if (!variant) {
+      throw new NotFoundException(`Variação ${id} não encontrada`);
+    }
+    return variant;
+  }
+
+  // Ajusta o estoque em unidades. deltaUnits negativo = saída, positivo = entrada.
+  // Usado pelo módulo de Pedidos ao confirmar uma venda, e por ajustes manuais.
+  async adjustStock(variantId: string, deltaUnits: number): Promise<ProductVariant> {
+    const variant = await this.findVariant(variantId);
+    const newQuantity = variant.stockQuantity + deltaUnits;
+
+    if (newQuantity < 0) {
+      throw new BadRequestException(
+        `Estoque insuficiente: tem ${variant.stockQuantity} unidade(s), tentando tirar ${-deltaUnits}`,
+      );
+    }
+
+    variant.stockQuantity = newQuantity;
+    return this.variantRepository.save(variant);
   }
 }
