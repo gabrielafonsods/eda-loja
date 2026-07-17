@@ -68,4 +68,11 @@ export class OrdersController {
   ) {
     return this.ordersService.salesReport(period);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('reports/sales/monthly')
+  monthlyBreakdown(@Query('year') year?: string) {
+    const y = year ? parseInt(year, 10) : new Date().getFullYear();
+    return this.ordersService.monthlyBreakdown(y);
+  }
 }

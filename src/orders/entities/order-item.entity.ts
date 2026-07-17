@@ -27,8 +27,6 @@ export class OrderItem {
   @Column()
   productVariantId: string;
 
-  // "Fotografia" do produto no momento da venda — assim o relatório
-  // continua certo mesmo se o produto for editado ou apagado depois
   @Column()
   productName: string;
 
@@ -38,17 +36,19 @@ export class OrderItem {
   @Column({ type: 'enum', enum: SaleType })
   saleType: SaleType;
 
-  // Quantidade vendida na unidade de venda (ex: "2" fardos, ou "5" unidades soltas)
   @Column({ type: 'int' })
   quantity: number;
 
-  // Quanto isso representa de verdade no estoque em unidades
-  // (ex: 2 fardos de 50 unidades = 100)
   @Column({ type: 'int' })
   unitsConsumed: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   unitPriceAtSale: number;
+
+  // Custo por unidade no momento da venda (fotografia do costPrice do
+  // produto). Fica em branco se o produto não tinha custo cadastrado.
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  costPriceAtSale?: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   subtotal: number;

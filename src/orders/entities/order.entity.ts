@@ -9,9 +9,9 @@ import {
 import { OrderItem } from './order-item.entity';
 
 export enum OrderStatus {
-  PENDING = 'pending', // cliente mandou pelo WhatsApp, ainda não confirmado
-  CONFIRMED = 'confirmed', // sua sogra confirmou que virou venda de verdade
-  CANCELLED = 'cancelled', // não foi pra frente
+  PENDING = 'pending',
+  CONFIRMED = 'confirmed',
+  CANCELLED = 'cancelled',
 }
 
 @Entity('orders')
@@ -24,6 +24,12 @@ export class Order {
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   totalAmount: number;
+
+  // Soma do custo dos itens (produtos sem custo cadastrado contam como 0
+  // aqui, então o "líquido" pode ficar superestimado se faltar cadastrar
+  // custo de algum produto)
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  totalCost: number;
 
   @OneToMany(() => OrderItem, (item) => item.order, {
     cascade: true,

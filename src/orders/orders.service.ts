@@ -27,16 +27,15 @@ export class OrdersService {
     private readonly productsService: ProductsService,
   ) {}
 
-  // Cria um pedido PENDENTE — chamado quando o cliente clica em
-  // "Enviar pedido pelo WhatsApp" no site. Não mexe no estoque ainda.
   async create(dto: CreateOrderDto): Promise<Order> {
     const items: OrderItem[] = [];
     let total = 0;
+    let totalCost = 0;
 
     for (const line of dto.items) {
       const variant = await this.variantRepository.findOne({
         where: { id: line.productVariantId },
-      relations: { product: true },
+        relations: { product: true },
       });
       if (!variant) {
         throw new NotFoundException(
@@ -61,6 +60,13 @@ export class OrdersService {
       const subtotal = unitPrice * line.quantity;
       total += subtotal;
 
+      // Custo (opcional) — se o produto não tem costPrice cadastrado,
+      // conta como 0 nesse pedido (o líquido fica superestimado nesse caso)
+      const costPriceAtSale =
+        variant.costPrice != null ? Number(variant.costPrice) : undefined;
+      const itemCost = costPriceAtSale != null ? costPriceAtSale * unitsConsumed : 0;
+      totalCost += itemCost;
+
       items.push(
         this.orderItemRepository.create({
           productVariantId: variant.id,
@@ -72,6 +78,7 @@ export class OrdersService {
           quantity: line.quantity,
           unitsConsumed,
           unitPriceAtSale: unitPrice,
+          costPriceAtSale,
           subtotal,
         }),
       );
@@ -80,6 +87,7 @@ export class OrdersService {
     const order = this.orderRepository.create({
       status: OrderStatus.PENDING,
       totalAmount: total,
+      totalCost,
       items,
     });
 
@@ -99,8 +107,6 @@ export class OrdersService {
     return order;
   }
 
-  // Só o admin chama isso — confirma que virou venda de verdade
-  // e É AQUI que o estoque desconta.
   async confirm(id: string): Promise<Order> {
     const order = await this.findOne(id);
     if (order.status !== OrderStatus.PENDING) {
@@ -137,7 +143,6 @@ export class OrdersService {
     return this.orderRepository.save(order);
   }
 
-  // Entrada manual de estoque (chegou mercadoria nova do fornecedor)
   async restock(variantId: string, dto: RestockDto): Promise<ProductVariant> {
     const variant = await this.productsService.adjustStock(
       variantId,
@@ -162,26 +167,26 @@ export class OrdersService {
     });
   }
 
-  // Relatório de vendas — diário, semanal, mensal ou anual
-  async salesReport(period: 'day' | 'week' | 'month' | 'year') {
+  private periodStart(period: 'day' | 'week' | 'month' | 'year'): Date {
     const now = new Date();
-    let from: Date;
-
     switch (period) {
       case 'day':
-        from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        break;
-      case 'week':
-        from = new Date(now);
-        from.setDate(now.getDate() - 7);
-        break;
+        return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      case 'week': {
+        const d = new Date(now);
+        d.setDate(now.getDate() - 7);
+        return d;
+      }
       case 'month':
-        from = new Date(now.getFullYear(), now.getMonth(), 1);
-        break;
+        return new Date(now.getFullYear(), now.getMonth(), 1);
       case 'year':
-        from = new Date(now.getFullYear(), 0, 1);
-        break;
+        return new Date(now.getFullYear(), 0, 1);
     }
+  }
+
+  // Relatório de vendas — bruto, custo e líquido, por período
+  async salesReport(period: 'day' | 'week' | 'month' | 'year') {
+    const from = this.periodStart(period);
 
     const orders = await this.orderRepository
       .createQueryBuilder('order')
@@ -189,16 +194,51 @@ export class OrdersService {
       .andWhere('order.confirmedAt >= :from', { from })
       .getMany();
 
-    const totalRevenue = orders.reduce(
-      (sum, o) => sum + Number(o.totalAmount),
-      0,
-    );
+    const totalRevenue = orders.reduce((sum, o) => sum + Number(o.totalAmount), 0);
+    const totalCost = orders.reduce((sum, o) => sum + Number(o.totalCost), 0);
 
     return {
       period,
       from,
       totalOrders: orders.length,
-      totalRevenue,
+      totalRevenue, // faturamento bruto
+      totalCost,
+      netRevenue: totalRevenue - totalCost, // faturamento líquido
     };
+  }
+
+  // Detalhamento mês a mês de um ano inteiro — útil pra levar pro contador
+  // na hora do Imposto de Renda
+  async monthlyBreakdown(year: number) {
+    const from = new Date(year, 0, 1);
+    const to = new Date(year + 1, 0, 1);
+
+    const orders = await this.orderRepository
+      .createQueryBuilder('order')
+      .where('order.status = :status', { status: OrderStatus.CONFIRMED })
+      .andWhere('order.confirmedAt >= :from', { from })
+      .andWhere('order.confirmedAt < :to', { to })
+      .getMany();
+
+    const months = Array.from({ length: 12 }, (_, i) => ({
+      month: i + 1,
+      totalOrders: 0,
+      totalRevenue: 0,
+      totalCost: 0,
+      netRevenue: 0,
+    }));
+
+    for (const order of orders) {
+      const monthIndex = new Date(order.confirmedAt!).getMonth();
+      months[monthIndex].totalOrders += 1;
+      months[monthIndex].totalRevenue += Number(order.totalAmount);
+      months[monthIndex].totalCost += Number(order.totalCost);
+    }
+
+    for (const m of months) {
+      m.netRevenue = m.totalRevenue - m.totalCost;
+    }
+
+    return { year, months };
   }
 }
