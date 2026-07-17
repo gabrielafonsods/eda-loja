@@ -36,7 +36,7 @@ export class OrdersService {
     for (const line of dto.items) {
       const variant = await this.variantRepository.findOne({
         where: { id: line.productVariantId },
-        relations: ['product'],
+      relations: { product: true },
       });
       if (!variant) {
         throw new NotFoundException(
