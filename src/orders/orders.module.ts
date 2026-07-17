@@ -7,11 +7,13 @@ import { ProductVariant } from '../products/entities/product-variant.entity';
 import { OrdersService } from './orders.service';
 import { OrdersController } from './orders.controller';
 import { ProductsModule } from '../products/products.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Order, OrderItem, StockMovement, ProductVariant]),
     ProductsModule,
+    AuthModule,
   ],
   controllers: [OrdersController],
   providers: [OrdersService],
