@@ -437,6 +437,8 @@ function AddToCart({ product }) {
     _s();
     const searchParams = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useSearchParams"])();
     const { addItem } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$cart$2d$context$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCart"])();
+    const [saleType, setSaleType] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("unit");
+    const [quantity, setQuantity] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(1);
     const [added, setAdded] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
     const selectedVariant = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMemo"])({
         "AddToCart.useMemo[selectedVariant]": ()=>{
@@ -451,31 +453,127 @@ function AddToCart({ product }) {
         searchParams
     ]);
     const variant = selectedVariant || product.variants[0];
+    const hasFardo = Boolean(variant?.fardoSize && variant?.fardoPrice);
     const disabled = !variant || !variant.availableForSale;
-    function handleClick() {
+    function handleAdd() {
         if (!variant) return;
+        const price = saleType === "fardo" && variant.fardoPrice ? variant.fardoPrice.amount : variant.unitPrice.amount;
+        const variantTitle = variant.title === "Padrão" ? saleType === "fardo" ? `Fardo (${variant.fardoSize} un)` : "Unidade" : `${variant.title} - ${saleType === "fardo" ? `Fardo (${variant.fardoSize} un)` : "Unidade"}`;
         addItem({
             productId: product.id,
             variantId: variant.id,
             productTitle: product.title,
-            variantTitle: variant.title,
-            price: variant.price.amount
-        });
+            variantTitle,
+            saleType,
+            price
+        }, quantity);
         setAdded(true);
         setTimeout(()=>setAdded(false), 1500);
     }
-    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-        onClick: handleClick,
-        disabled: disabled,
-        className: `relative flex w-full items-center justify-center rounded-full bg-blue-600 p-4 tracking-wide text-white ${disabled ? "cursor-not-allowed opacity-60" : "hover:opacity-90"}`,
-        children: disabled ? "Fora de estoque" : added ? "Adicionado! ✓" : "Adicionar ao carrinho"
-    }, void 0, false, {
+    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+        className: "flex flex-col gap-3",
+        children: [
+            hasFardo && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "flex gap-2",
+                children: [
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                        type: "button",
+                        onClick: ()=>setSaleType("unit"),
+                        className: `flex-1 rounded-full border p-2 text-sm ${saleType === "unit" ? "border-terracotta bg-terracotta text-white" : "border-peach-dark text-ink"}`,
+                        children: [
+                            "Unidade — R$ ",
+                            variant?.unitPrice.amount
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/components/cart/add-to-cart.tsx",
+                        lineNumber: 62,
+                        columnNumber: 11
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                        type: "button",
+                        onClick: ()=>setSaleType("fardo"),
+                        className: `flex-1 rounded-full border p-2 text-sm ${saleType === "fardo" ? "border-terracotta bg-terracotta text-white" : "border-peach-dark text-ink"}`,
+                        children: [
+                            "Fardo (",
+                            variant?.fardoSize,
+                            "un) — R$ ",
+                            variant?.fardoPrice?.amount
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/components/cart/add-to-cart.tsx",
+                        lineNumber: 73,
+                        columnNumber: 11
+                    }, this)
+                ]
+            }, void 0, true, {
+                fileName: "[project]/components/cart/add-to-cart.tsx",
+                lineNumber: 61,
+                columnNumber: 9
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "flex items-center gap-3",
+                children: [
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "flex items-center gap-2",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                type: "button",
+                                onClick: ()=>setQuantity((q)=>Math.max(1, q - 1)),
+                                className: "h-9 w-9 rounded-full border border-peach-dark",
+                                children: "-"
+                            }, void 0, false, {
+                                fileName: "[project]/components/cart/add-to-cart.tsx",
+                                lineNumber: 89,
+                                columnNumber: 11
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                className: "w-6 text-center",
+                                children: quantity
+                            }, void 0, false, {
+                                fileName: "[project]/components/cart/add-to-cart.tsx",
+                                lineNumber: 96,
+                                columnNumber: 11
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                type: "button",
+                                onClick: ()=>setQuantity((q)=>q + 1),
+                                className: "h-9 w-9 rounded-full border border-peach-dark",
+                                children: "+"
+                            }, void 0, false, {
+                                fileName: "[project]/components/cart/add-to-cart.tsx",
+                                lineNumber: 97,
+                                columnNumber: 11
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/components/cart/add-to-cart.tsx",
+                        lineNumber: 88,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                        onClick: handleAdd,
+                        disabled: disabled,
+                        className: `flex-1 rounded-full bg-terracotta p-3 tracking-wide text-white ${disabled ? "cursor-not-allowed opacity-60" : "hover:bg-terracotta-dark"}`,
+                        children: disabled ? "Fora de estoque" : added ? "Adicionado! ✓" : "Adicionar ao carrinho"
+                    }, void 0, false, {
+                        fileName: "[project]/components/cart/add-to-cart.tsx",
+                        lineNumber: 106,
+                        columnNumber: 9
+                    }, this)
+                ]
+            }, void 0, true, {
+                fileName: "[project]/components/cart/add-to-cart.tsx",
+                lineNumber: 87,
+                columnNumber: 7
+            }, this)
+        ]
+    }, void 0, true, {
         fileName: "[project]/components/cart/add-to-cart.tsx",
-        lineNumber: 38,
+        lineNumber: 59,
         columnNumber: 5
     }, this);
 }
-_s(AddToCart, "8xFbr9dtz5R1i1Mf7uicJemzfk0=", false, function() {
+_s(AddToCart, "5aVCusvUexFLQHvIicXr4KFUqjc=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useSearchParams"],
         __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$cart$2d$context$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCart"]

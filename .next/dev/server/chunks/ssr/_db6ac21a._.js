@@ -3,6 +3,8 @@ module.exports = [
 "use strict";
 
 __turbopack_context__.s([
+    "createOrder",
+    ()=>createOrder,
     "getCollection",
     ()=>getCollection,
     "getCollectionProducts",
@@ -22,62 +24,44 @@ __turbopack_context__.s([
     "getProducts",
     ()=>getProducts
 ]);
-const API_URL = ("TURBOPACK compile-time value", "http://localhost:3001") || "http://localhost:3000";
+const API_URL = ("TURBOPACK compile-time value", "http://localhost:3001") || "http://localhost:3001";
 const PLACEHOLDER_IMAGE = {
     url: "/placeholder-product.png",
     altText: "Produto sem imagem",
     width: 800,
     height: 800
 };
-// Rótulo amigável pro tipo de embalagem
-const unitTypeLabel = {
-    unit: "Unidade",
-    pack: "Pacote",
-    box: "Caixa"
-};
-function variantTitle(variant) {
-    const parts = [];
-    if (variant.attributes) {
-        for (const value of Object.values(variant.attributes)){
-            parts.push(value);
-        }
-    }
-    parts.push(`${unitTypeLabel[variant.unitType] || variant.unitType} (${variant.quantityPerUnit})`);
-    return parts.join(" - ");
-}
 function reshapeVariant(variant) {
-    const selectedOptions = [
-        ...Object.entries(variant.attributes || {}).map(([name, value])=>({
-                name,
-                value
-            })),
-        {
-            name: "Tipo",
-            value: unitTypeLabel[variant.unitType] || variant.unitType
-        }
-    ];
+    const selectedOptions = Object.entries(variant.attributes || {}).map(([name, value])=>({
+            name,
+            value
+        }));
+    const title = selectedOptions.length > 0 ? selectedOptions.map((o)=>o.value).join(" - ") : "Padrão";
+    const unitPrice = {
+        amount: Number(variant.unitPrice).toFixed(2),
+        currencyCode: "BRL"
+    };
     return {
         id: variant.id,
-        title: variantTitle(variant),
+        title,
         availableForSale: variant.stockQuantity > 0,
         selectedOptions,
-        price: {
-            amount: Number(variant.price).toFixed(2),
+        price: unitPrice,
+        unitPrice,
+        fardoSize: variant.fardoSize,
+        fardoPrice: variant.fardoPrice ? {
+            amount: Number(variant.fardoPrice).toFixed(2),
             currencyCode: "BRL"
-        }
+        } : undefined,
+        stockQuantity: variant.stockQuantity
     };
 }
 function reshapeProduct(product) {
     const variants = product.variants.map(reshapeVariant);
-    const prices = product.variants.map((v)=>Number(v.price));
-    // Monta as opções (Cor, Número, Sabor, Tipo...) a partir de todas as variações
+    const unitPrices = product.variants.map((v)=>Number(v.unitPrice));
     const optionsMap = new Map();
     for (const variant of product.variants){
-        const attrs = {
-            ...variant.attributes,
-            Tipo: unitTypeLabel[variant.unitType] || variant.unitType
-        };
-        for (const [name, value] of Object.entries(attrs)){
+        for (const [name, value] of Object.entries(variant.attributes || {})){
             if (!optionsMap.has(name)) optionsMap.set(name, new Set());
             optionsMap.get(name).add(value);
         }
@@ -97,11 +81,11 @@ function reshapeProduct(product) {
         options,
         priceRange: {
             minVariantPrice: {
-                amount: Math.min(...prices).toFixed(2),
+                amount: Math.min(...unitPrices).toFixed(2),
                 currencyCode: "BRL"
             },
             maxVariantPrice: {
-                amount: Math.max(...prices).toFixed(2),
+                amount: Math.max(...unitPrices).toFixed(2),
                 currencyCode: "BRL"
             }
         },
@@ -120,10 +104,10 @@ function reshapeProduct(product) {
         updatedAt: product.updatedAt
     };
 }
-async function apiFetch(path) {
+async function apiFetch(path, revalidate = 60) {
     const res = await fetch(`${API_URL}${path}`, {
         next: {
-            revalidate: 60
+            revalidate
         }
     });
     if (!res.ok) {
@@ -185,6 +169,12 @@ async function getCollection(handle) {
 async function getMenu(_handle) {
     return [];
 }
+async function getPage(_handle) {
+    return undefined;
+}
+async function getPages() {
+    return [];
+}
 async function getProductRecommendations(productId) {
     const product = await getProduct(productId);
     if (!product) return [];
@@ -193,11 +183,20 @@ async function getProductRecommendations(productId) {
     });
     return products.filter((p)=>p.id !== productId).slice(0, 4);
 }
-async function getPage(handle) {
-    return undefined;
-}
-async function getPages() {
-    return [];
+async function createOrder(items) {
+    const res = await fetch(`${API_URL}/orders`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            items
+        })
+    });
+    if (!res.ok) {
+        throw new Error(`Erro ao criar pedido: ${res.status}`);
+    }
+    return res.json();
 }
 }),
 "[project]/app/[page]/opengraph-image.tsx [app-rsc] (ecmascript)", ((__turbopack_context__) => {
