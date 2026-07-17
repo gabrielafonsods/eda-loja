@@ -1,4 +1,5 @@
 import {
+  ApiCategory,
   ApiProduct,
   ApiProductVariant,
   Collection,
@@ -62,6 +63,15 @@ function reshapeProduct(product: ApiProduct): Product {
     ([name, values]) => ({ id: name, name, values: Array.from(values) }),
   );
 
+  const image = product.imageUrl
+    ? {
+        url: product.imageUrl,
+        altText: product.name,
+        width: 800,
+        height: 800,
+      }
+    : PLACEHOLDER_IMAGE;
+
   return {
     id: product.id,
     handle: product.id,
@@ -83,10 +93,10 @@ function reshapeProduct(product: ApiProduct): Product {
       },
     },
     variants,
-    featuredImage: PLACEHOLDER_IMAGE,
-    images: [PLACEHOLDER_IMAGE],
+    featuredImage: image,
+    images: [image],
     seo: { title: product.name, description: product.description || "" },
-    tags: product.category ? [product.category] : [],
+    tags: product.category?.name ? [product.category.name] : [],
     updatedAt: product.updatedAt,
   };
 }
@@ -138,10 +148,7 @@ export async function getCollectionProducts({
 }
 
 export async function getCollections(): Promise<Collection[]> {
-  const products = await getProducts({});
-  const categories = Array.from(
-    new Set(products.map((p) => p.tags[0]).filter(Boolean)),
-  ) as string[];
+  const categories = await apiFetch<ApiCategory[]>("/categories");
 
   return [
     {
@@ -153,11 +160,11 @@ export async function getCollections(): Promise<Collection[]> {
       updatedAt: new Date().toISOString(),
     },
     ...categories.map((category) => ({
-      handle: category,
-      title: category,
-      description: category,
-      seo: { title: category, description: category },
-      path: `/search/${category}`,
+      handle: category.name,
+      title: category.name,
+      description: category.name,
+      seo: { title: category.name, description: category.name },
+      path: `/search/${category.name}`,
       updatedAt: new Date().toISOString(),
     })),
   ];
@@ -191,8 +198,6 @@ export async function getProductRecommendations(
   return products.filter((p) => p.id !== productId).slice(0, 4);
 }
 
-// Chamado do carrinho (client-side) ao enviar o pedido pelo WhatsApp —
-// registra o pedido como "pendente" no backend antes de abrir o WhatsApp.
 export async function createOrder(
   items: { productVariantId: string; saleType: SaleType; quantity: number }[],
 ): Promise<{ id: string }> {

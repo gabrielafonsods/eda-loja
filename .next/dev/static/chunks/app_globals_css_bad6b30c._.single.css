@@ -57,7 +57,6 @@
     --color-neutral-300: #d4d4d4;
     --color-neutral-400: #a1a1a1;
     --color-neutral-500: #737373;
-    --color-neutral-600: #525252;
     --color-neutral-700: #404040;
     --color-neutral-800: #262626;
     --color-neutral-900: #171717;
@@ -128,7 +127,6 @@
       --color-neutral-300: lab(84.92% 0 0);
       --color-neutral-400: lab(66.128% -.0000298023 .0000119209);
       --color-neutral-500: lab(48.496% 0 0);
-      --color-neutral-600: lab(34.924% 0 0);
       --color-neutral-700: lab(27.036% 0 0);
       --color-neutral-800: lab(15.204% 0 0);
       --color-neutral-900: lab(7.78201% -.0000149012 0);
@@ -1484,10 +1482,6 @@
     border-color: var(--color-neutral-200);
   }
 
-  .border-neutral-300 {
-    border-color: var(--color-neutral-300);
-  }
-
   .border-neutral-700 {
     border-color: var(--color-neutral-700);
   }
@@ -1850,10 +1844,6 @@
     .text-ink\/90 {
       color: color-mix(in oklab, var(--color-ink) 90%, transparent);
     }
-  }
-
-  .text-neutral-400 {
-    color: var(--color-neutral-400);
   }
 
   .text-neutral-500 {
@@ -2436,10 +2426,6 @@
 
   .dark\:border-black:where(.dark, .dark *) {
     border-color: var(--color-black);
-  }
-
-  .dark\:border-neutral-600:where(.dark, .dark *) {
-    border-color: var(--color-neutral-600);
   }
 
   .dark\:border-neutral-700:where(.dark, .dark *) {
