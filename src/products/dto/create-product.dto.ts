@@ -7,6 +7,7 @@ import {
   IsInt,
   IsNumber,
   IsObject,
+  IsUUID,
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -57,13 +58,17 @@ export class CreateProductDto {
   @IsOptional()
   description?: string;
 
-  @IsString()
+  @IsUUID()
   @IsOptional()
-  category?: string;
+  categoryId?: string;
 
   @IsString()
   @IsOptional()
   supplier?: string;
+
+  @IsString()
+  @IsOptional()
+  imageUrl?: string;
 
   @IsBoolean()
   @IsOptional()

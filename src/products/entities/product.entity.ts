@@ -3,10 +3,13 @@ import {
   PrimaryGeneratedColumn,
   Column,
   OneToMany,
+  ManyToOne,
+  JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { ProductVariant } from './product-variant.entity';
+import { Category } from '../../categories/entities/category.entity';
 
 @Entity('products')
 export class Product {
@@ -19,11 +22,20 @@ export class Product {
   @Column({ nullable: true })
   description?: string;
 
+  @ManyToOne(() => Category, { eager: true, nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'categoryId' })
+  category?: Category;
+
   @Column({ nullable: true })
-  category?: string;
+  categoryId?: string;
 
   @Column({ nullable: true })
   supplier?: string;
+
+  // URL da foto principal do produto (upload de arquivo fica pra depois —
+  // por enquanto, cole o link de uma imagem já hospedada em algum lugar)
+  @Column({ nullable: true })
+  imageUrl?: string;
 
   @Column({ default: true })
   active: boolean;
