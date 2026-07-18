@@ -143,6 +143,13 @@ export class OrdersService {
     return this.orderRepository.save(order);
   }
 
+  // Apaga o pedido de qualquer status, incluindo confirmados. Atenção:
+  // apagar um confirmado remove esse valor dos relatórios de vendas também.
+  async remove(id: string): Promise<void> {
+    const order = await this.findOne(id);
+    await this.orderRepository.remove(order);
+  }
+
   async restock(variantId: string, dto: RestockDto): Promise<ProductVariant> {
     const variant = await this.productsService.adjustStock(
       variantId,

@@ -19,6 +19,12 @@ export class Order {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  // Número sequencial simples pra referenciar o pedido com o cliente
+  // (ex: exibido no admin como #00000001). Gerado automaticamente pelo
+  // Postgres via sequence, independente do id (uuid).
+  @Column({ type: 'int', generated: 'increment' })
+  orderNumber: number;
+
   @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
   status: OrderStatus;
 

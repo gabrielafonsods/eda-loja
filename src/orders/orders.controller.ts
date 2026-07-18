@@ -5,6 +5,7 @@ import {
   Body,
   Param,
   Patch,
+  Delete,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -47,6 +48,13 @@ export class OrdersController {
   @Patch('orders/:id/cancel')
   cancel(@Param('id') id: string) {
     return this.ordersService.cancel(id);
+  }
+
+  // Apaga o pedido, independente do status (inclusive confirmados)
+  @UseGuards(JwtAuthGuard)
+  @Delete('orders/:id')
+  remove(@Param('id') id: string) {
+    return this.ordersService.remove(id);
   }
 
   @UseGuards(JwtAuthGuard)
