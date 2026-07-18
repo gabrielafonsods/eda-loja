@@ -366,6 +366,12 @@ function reshapeProduct(product) {
             name,
             values: Array.from(values)
         }));
+    const image = product.imageUrl ? {
+        url: product.imageUrl,
+        altText: product.name,
+        width: 800,
+        height: 800
+    } : PLACEHOLDER_IMAGE;
     return {
         id: product.id,
         handle: product.id,
@@ -385,16 +391,16 @@ function reshapeProduct(product) {
             }
         },
         variants,
-        featuredImage: PLACEHOLDER_IMAGE,
+        featuredImage: image,
         images: [
-            PLACEHOLDER_IMAGE
+            image
         ],
         seo: {
             title: product.name,
             description: product.description || ""
         },
-        tags: product.category ? [
-            product.category
+        tags: product.category?.name ? [
+            product.category.name
         ] : [],
         updatedAt: product.updatedAt
     };
@@ -427,11 +433,11 @@ async function getProduct(handle) {
 async function getCollectionProducts({ collection }) {
     const products = await getProducts({});
     if (!collection) return products;
-    return products.filter((p)=>p.tags.includes(collection));
+    const target = collection.trim().toLowerCase();
+    return products.filter((p)=>p.tags.some((tag)=>tag.trim().toLowerCase() === target));
 }
 async function getCollections() {
-    const products = await getProducts({});
-    const categories = Array.from(new Set(products.map((p)=>p.tags[0]).filter(Boolean)));
+    const categories = await apiFetch("/categories");
     return [
         {
             handle: "",
@@ -445,21 +451,22 @@ async function getCollections() {
             updatedAt: new Date().toISOString()
         },
         ...categories.map((category)=>({
-                handle: category,
-                title: category,
-                description: category,
+                handle: category.name,
+                title: category.name,
+                description: category.name,
                 seo: {
-                    title: category,
-                    description: category
+                    title: category.name,
+                    description: category.name
                 },
-                path: `/search/${category}`,
+                path: `/search/${category.name}`,
                 updatedAt: new Date().toISOString()
             }))
     ];
 }
 async function getCollection(handle) {
     const collections = await getCollections();
-    return collections.find((c)=>c.handle === handle);
+    const target = handle.trim().toLowerCase();
+    return collections.find((c)=>c.handle.trim().toLowerCase() === target);
 }
 async function getMenu(_handle) {
     return [];

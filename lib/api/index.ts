@@ -144,7 +144,10 @@ export async function getCollectionProducts({
 }): Promise<Product[]> {
   const products = await getProducts({});
   if (!collection) return products;
-  return products.filter((p) => p.tags.includes(collection));
+  const target = collection.trim().toLowerCase();
+  return products.filter((p) =>
+    p.tags.some((tag) => tag.trim().toLowerCase() === target),
+  );
 }
 
 export async function getCollections(): Promise<Collection[]> {
@@ -172,7 +175,8 @@ export async function getCollections(): Promise<Collection[]> {
 
 export async function getCollection(handle: string): Promise<Collection | undefined> {
   const collections = await getCollections();
-  return collections.find((c) => c.handle === handle);
+  const target = handle.trim().toLowerCase();
+  return collections.find((c) => c.handle.trim().toLowerCase() === target);
 }
 
 export async function getMenu(_handle: string): Promise<Menu[]> {

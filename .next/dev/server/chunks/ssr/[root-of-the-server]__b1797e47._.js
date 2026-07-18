@@ -144,7 +144,8 @@ async function getProduct(handle) {
 async function getCollectionProducts({ collection }) {
     const products = await getProducts({});
     if (!collection) return products;
-    return products.filter((p)=>p.tags.includes(collection));
+    const target = collection.trim().toLowerCase();
+    return products.filter((p)=>p.tags.some((tag)=>tag.trim().toLowerCase() === target));
 }
 async function getCollections() {
     const categories = await apiFetch("/categories");
@@ -175,7 +176,8 @@ async function getCollections() {
 }
 async function getCollection(handle) {
     const collections = await getCollections();
-    return collections.find((c)=>c.handle === handle);
+    const target = handle.trim().toLowerCase();
+    return collections.find((c)=>c.handle.trim().toLowerCase() === target);
 }
 async function getMenu(_handle) {
     return [];

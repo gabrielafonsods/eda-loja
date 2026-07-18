@@ -71,6 +71,8 @@ __turbopack_context__.n(__TURBOPACK__imported__module__$5b$project$5d2f$componen
 "use strict";
 
 __turbopack_context__.s([
+    "createOrder",
+    ()=>createOrder,
     "getCollection",
     ()=>getCollection,
     "getCollectionProducts",
@@ -90,62 +92,44 @@ __turbopack_context__.s([
     "getProducts",
     ()=>getProducts
 ]);
-const API_URL = ("TURBOPACK compile-time value", "http://localhost:3001") || "http://localhost:3000";
+const API_URL = ("TURBOPACK compile-time value", "http://localhost:3001") || "http://localhost:3001";
 const PLACEHOLDER_IMAGE = {
     url: "/placeholder-product.png",
     altText: "Produto sem imagem",
     width: 800,
     height: 800
 };
-// Rótulo amigável pro tipo de embalagem
-const unitTypeLabel = {
-    unit: "Unidade",
-    pack: "Pacote",
-    box: "Caixa"
-};
-function variantTitle(variant) {
-    const parts = [];
-    if (variant.attributes) {
-        for (const value of Object.values(variant.attributes)){
-            parts.push(value);
-        }
-    }
-    parts.push(`${unitTypeLabel[variant.unitType] || variant.unitType} (${variant.quantityPerUnit})`);
-    return parts.join(" - ");
-}
 function reshapeVariant(variant) {
-    const selectedOptions = [
-        ...Object.entries(variant.attributes || {}).map(([name, value])=>({
-                name,
-                value
-            })),
-        {
-            name: "Tipo",
-            value: unitTypeLabel[variant.unitType] || variant.unitType
-        }
-    ];
+    const selectedOptions = Object.entries(variant.attributes || {}).map(([name, value])=>({
+            name,
+            value
+        }));
+    const title = selectedOptions.length > 0 ? selectedOptions.map((o)=>o.value).join(" - ") : "Padrão";
+    const unitPrice = {
+        amount: Number(variant.unitPrice).toFixed(2),
+        currencyCode: "BRL"
+    };
     return {
         id: variant.id,
-        title: variantTitle(variant),
+        title,
         availableForSale: variant.stockQuantity > 0,
         selectedOptions,
-        price: {
-            amount: Number(variant.price).toFixed(2),
+        price: unitPrice,
+        unitPrice,
+        fardoSize: variant.fardoSize,
+        fardoPrice: variant.fardoPrice ? {
+            amount: Number(variant.fardoPrice).toFixed(2),
             currencyCode: "BRL"
-        }
+        } : undefined,
+        stockQuantity: variant.stockQuantity
     };
 }
 function reshapeProduct(product) {
     const variants = product.variants.map(reshapeVariant);
-    const prices = product.variants.map((v)=>Number(v.price));
-    // Monta as opções (Cor, Número, Sabor, Tipo...) a partir de todas as variações
+    const unitPrices = product.variants.map((v)=>Number(v.unitPrice));
     const optionsMap = new Map();
     for (const variant of product.variants){
-        const attrs = {
-            ...variant.attributes,
-            Tipo: unitTypeLabel[variant.unitType] || variant.unitType
-        };
-        for (const [name, value] of Object.entries(attrs)){
+        for (const [name, value] of Object.entries(variant.attributes || {})){
             if (!optionsMap.has(name)) optionsMap.set(name, new Set());
             optionsMap.get(name).add(value);
         }
@@ -155,6 +139,12 @@ function reshapeProduct(product) {
             name,
             values: Array.from(values)
         }));
+    const image = product.imageUrl ? {
+        url: product.imageUrl,
+        altText: product.name,
+        width: 800,
+        height: 800
+    } : PLACEHOLDER_IMAGE;
     return {
         id: product.id,
         handle: product.id,
@@ -165,33 +155,33 @@ function reshapeProduct(product) {
         options,
         priceRange: {
             minVariantPrice: {
-                amount: Math.min(...prices).toFixed(2),
+                amount: Math.min(...unitPrices).toFixed(2),
                 currencyCode: "BRL"
             },
             maxVariantPrice: {
-                amount: Math.max(...prices).toFixed(2),
+                amount: Math.max(...unitPrices).toFixed(2),
                 currencyCode: "BRL"
             }
         },
         variants,
-        featuredImage: PLACEHOLDER_IMAGE,
+        featuredImage: image,
         images: [
-            PLACEHOLDER_IMAGE
+            image
         ],
         seo: {
             title: product.name,
             description: product.description || ""
         },
-        tags: product.category ? [
-            product.category
+        tags: product.category?.name ? [
+            product.category.name
         ] : [],
         updatedAt: product.updatedAt
     };
 }
-async function apiFetch(path) {
+async function apiFetch(path, revalidate = 60) {
     const res = await fetch(`${API_URL}${path}`, {
         next: {
-            revalidate: 60
+            revalidate
         }
     });
     if (!res.ok) {
@@ -216,11 +206,11 @@ async function getProduct(handle) {
 async function getCollectionProducts({ collection }) {
     const products = await getProducts({});
     if (!collection) return products;
-    return products.filter((p)=>p.tags.includes(collection));
+    const target = collection.trim().toLowerCase();
+    return products.filter((p)=>p.tags.some((tag)=>tag.trim().toLowerCase() === target));
 }
 async function getCollections() {
-    const products = await getProducts({});
-    const categories = Array.from(new Set(products.map((p)=>p.tags[0]).filter(Boolean)));
+    const categories = await apiFetch("/categories");
     return [
         {
             handle: "",
@@ -234,23 +224,30 @@ async function getCollections() {
             updatedAt: new Date().toISOString()
         },
         ...categories.map((category)=>({
-                handle: category,
-                title: category,
-                description: category,
+                handle: category.name,
+                title: category.name,
+                description: category.name,
                 seo: {
-                    title: category,
-                    description: category
+                    title: category.name,
+                    description: category.name
                 },
-                path: `/search/${category}`,
+                path: `/search/${category.name}`,
                 updatedAt: new Date().toISOString()
             }))
     ];
 }
 async function getCollection(handle) {
     const collections = await getCollections();
-    return collections.find((c)=>c.handle === handle);
+    const target = handle.trim().toLowerCase();
+    return collections.find((c)=>c.handle.trim().toLowerCase() === target);
 }
 async function getMenu(_handle) {
+    return [];
+}
+async function getPage(_handle) {
+    return undefined;
+}
+async function getPages() {
     return [];
 }
 async function getProductRecommendations(productId) {
@@ -261,11 +258,20 @@ async function getProductRecommendations(productId) {
     });
     return products.filter((p)=>p.id !== productId).slice(0, 4);
 }
-async function getPage(handle) {
-    return undefined;
-}
-async function getPages() {
-    return [];
+async function createOrder(items) {
+    const res = await fetch(`${API_URL}/orders`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            items
+        })
+    });
+    if (!res.ok) {
+        throw new Error(`Erro ao criar pedido: ${res.status}`);
+    }
+    return res.json();
 }
 }),
 "[project]/components/layout/footer.tsx [app-rsc] (ecmascript)", ((__turbopack_context__) => {
