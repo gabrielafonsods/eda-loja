@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Order, OrderStatus } from './entities/order.entity';
 import { OrderItem, SaleType } from './entities/order-item.entity';
 import {
@@ -29,59 +29,77 @@ export class OrdersService {
 
   async create(dto: CreateOrderDto): Promise<Order> {
     const items: OrderItem[] = [];
+    const reserved: { variantId: string; units: number }[] = [];
     let total = 0;
     let totalCost = 0;
 
-    for (const line of dto.items) {
-      const variant = await this.variantRepository.findOne({
-        where: { id: line.productVariantId },
-        relations: { product: true },
-      });
-      if (!variant) {
-        throw new NotFoundException(
-          `Variação ${line.productVariantId} não encontrada`,
+    try {
+      for (const line of dto.items) {
+        const variant = await this.variantRepository.findOne({
+          where: { id: line.productVariantId },
+          relations: { product: true },
+        });
+        if (!variant) {
+          throw new NotFoundException(
+            `Variação ${line.productVariantId} não encontrada`,
+          );
+        }
+
+        let unitsConsumed: number;
+        let unitPrice: number;
+
+        if (line.saleType === SaleType.FARDO) {
+          if (!variant.fardoSize || !variant.fardoPrice) {
+            throw new BadRequestException('Esse produto não é vendido em fardo');
+          }
+          unitsConsumed = variant.fardoSize * line.quantity;
+          unitPrice = Number(variant.fardoPrice);
+        } else {
+          unitsConsumed = line.quantity;
+          unitPrice = Number(variant.unitPrice);
+        }
+
+        // Reserva o estoque na hora, mesmo o pedido ficando pendente —
+        // impede que um único pedido peça mais do que existe (adjustStock
+        // já lança erro se ficaria negativo) e reduz a janela em que dois
+        // pedidos simultâneos poderiam juntos estourar o estoque.
+        await this.productsService.adjustStock(variant.id, -unitsConsumed);
+        reserved.push({ variantId: variant.id, units: unitsConsumed });
+
+        const subtotal = unitPrice * line.quantity;
+        total += subtotal;
+
+        // Custo (opcional) — se o produto não tem costPrice cadastrado,
+        // conta como 0 nesse pedido (o líquido fica superestimado nesse caso)
+        const costPriceAtSale =
+          variant.costPrice != null ? Number(variant.costPrice) : undefined;
+        const itemCost = costPriceAtSale != null ? costPriceAtSale * unitsConsumed : 0;
+        totalCost += itemCost;
+
+        items.push(
+          this.orderItemRepository.create({
+            productVariantId: variant.id,
+            productName: variant.product?.name || '',
+            variantDescription: variant.attributes
+              ? Object.values(variant.attributes).join(', ')
+              : undefined,
+            saleType: line.saleType,
+            quantity: line.quantity,
+            unitsConsumed,
+            unitPriceAtSale: unitPrice,
+            costPriceAtSale,
+            subtotal,
+          }),
         );
       }
-
-      let unitsConsumed: number;
-      let unitPrice: number;
-
-      if (line.saleType === SaleType.FARDO) {
-        if (!variant.fardoSize || !variant.fardoPrice) {
-          throw new BadRequestException('Esse produto não é vendido em fardo');
-        }
-        unitsConsumed = variant.fardoSize * line.quantity;
-        unitPrice = Number(variant.fardoPrice);
-      } else {
-        unitsConsumed = line.quantity;
-        unitPrice = Number(variant.unitPrice);
+    } catch (err) {
+      // Algo falhou no meio do pedido (produto inexistente, estoque
+      // insuficiente, etc.) — devolve o que já tinha sido reservado antes
+      // de propagar o erro pro cliente.
+      for (const r of reserved) {
+        await this.productsService.adjustStock(r.variantId, r.units);
       }
-
-      const subtotal = unitPrice * line.quantity;
-      total += subtotal;
-
-      // Custo (opcional) — se o produto não tem costPrice cadastrado,
-      // conta como 0 nesse pedido (o líquido fica superestimado nesse caso)
-      const costPriceAtSale =
-        variant.costPrice != null ? Number(variant.costPrice) : undefined;
-      const itemCost = costPriceAtSale != null ? costPriceAtSale * unitsConsumed : 0;
-      totalCost += itemCost;
-
-      items.push(
-        this.orderItemRepository.create({
-          productVariantId: variant.id,
-          productName: variant.product?.name || '',
-          variantDescription: variant.attributes
-            ? Object.values(variant.attributes).join(', ')
-            : undefined,
-          saleType: line.saleType,
-          quantity: line.quantity,
-          unitsConsumed,
-          unitPriceAtSale: unitPrice,
-          costPriceAtSale,
-          subtotal,
-        }),
-      );
+      throw err;
     }
 
     const order = this.orderRepository.create({
@@ -91,7 +109,21 @@ export class OrdersService {
       items,
     });
 
-    return this.orderRepository.save(order);
+    const savedOrder = await this.orderRepository.save(order);
+
+    for (const item of savedOrder.items) {
+      await this.movementRepository.save(
+        this.movementRepository.create({
+          productVariantId: item.productVariantId,
+          type: MovementType.OUT,
+          reason: MovementReason.SALE,
+          quantityUnits: item.unitsConsumed,
+          relatedOrderId: savedOrder.id,
+        }),
+      );
+    }
+
+    return savedOrder;
   }
 
   findAll(status?: OrderStatus): Promise<Order[]> {
@@ -113,22 +145,8 @@ export class OrdersService {
       throw new BadRequestException('Só é possível confirmar pedidos pendentes');
     }
 
-    for (const item of order.items) {
-      await this.productsService.adjustStock(
-        item.productVariantId,
-        -item.unitsConsumed,
-      );
-      await this.movementRepository.save(
-        this.movementRepository.create({
-          productVariantId: item.productVariantId,
-          type: MovementType.OUT,
-          reason: MovementReason.SALE,
-          quantityUnits: item.unitsConsumed,
-          relatedOrderId: order.id,
-        }),
-      );
-    }
-
+    // O estoque já foi reservado na criação do pedido — confirmar só
+    // consolida o status, sem mexer no estoque de novo.
     order.status = OrderStatus.CONFIRMED;
     order.confirmedAt = new Date();
     return this.orderRepository.save(order);
@@ -139,15 +157,42 @@ export class OrdersService {
     if (order.status !== OrderStatus.PENDING) {
       throw new BadRequestException('Só é possível cancelar pedidos pendentes');
     }
+
+    await this.restoreStock(order, 'Estoque devolvido — pedido cancelado');
+
     order.status = OrderStatus.CANCELLED;
     return this.orderRepository.save(order);
   }
 
   // Apaga o pedido de qualquer status, incluindo confirmados. Atenção:
   // apagar um confirmado remove esse valor dos relatórios de vendas também.
+  // Se o pedido ainda tinha estoque reservado/descontado por causa dele
+  // (ou seja, não foi cancelado antes), devolve o estoque antes de apagar.
   async remove(id: string): Promise<void> {
     const order = await this.findOne(id);
+    if (order.status !== OrderStatus.CANCELLED) {
+      await this.restoreStock(order, 'Estoque devolvido — pedido apagado');
+    }
     await this.orderRepository.remove(order);
+  }
+
+  private async restoreStock(order: Order, note: string): Promise<void> {
+    for (const item of order.items) {
+      await this.productsService.adjustStock(
+        item.productVariantId,
+        item.unitsConsumed,
+      );
+      await this.movementRepository.save(
+        this.movementRepository.create({
+          productVariantId: item.productVariantId,
+          type: MovementType.IN,
+          reason: MovementReason.ADJUSTMENT,
+          quantityUnits: item.unitsConsumed,
+          relatedOrderId: order.id,
+          note,
+        }),
+      );
+    }
   }
 
   async restock(variantId: string, dto: RestockDto): Promise<ProductVariant> {
@@ -167,10 +212,32 @@ export class OrdersService {
     return variant;
   }
 
-  stockMovements(variantId?: string) {
-    return this.movementRepository.find({
+  // Enriquecido com nome do produto/variação — sem isso, a tela só
+  // teria o UUID da variação pra mostrar, o que não ajuda ninguém.
+  async stockMovements(variantId?: string) {
+    const movements = await this.movementRepository.find({
       where: variantId ? { productVariantId: variantId } : {},
       order: { createdAt: 'DESC' },
+    });
+
+    const variantIds = [...new Set(movements.map((m) => m.productVariantId))];
+    const variants = variantIds.length
+      ? await this.variantRepository.find({
+          where: { id: In(variantIds) },
+          relations: { product: true },
+        })
+      : [];
+    const variantMap = new Map(variants.map((v) => [v.id, v]));
+
+    return movements.map((m) => {
+      const variant = variantMap.get(m.productVariantId);
+      return {
+        ...m,
+        productName: variant?.product?.name ?? '(produto removido)',
+        variantDescription: variant?.attributes
+          ? Object.values(variant.attributes).join(', ')
+          : undefined,
+      };
     });
   }
 
