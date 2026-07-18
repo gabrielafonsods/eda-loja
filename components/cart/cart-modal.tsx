@@ -42,9 +42,11 @@ export default function CartModal() {
       );
       clearCart();
       setOpen(false);
-    } catch {
+    } catch (err) {
       setError(
-        "Não conseguimos registrar o pedido agora. Tente novamente em alguns instantes.",
+        err instanceof Error
+          ? err.message
+          : "Não conseguimos registrar o pedido agora. Tente novamente em alguns instantes.",
       );
     } finally {
       setSending(false);

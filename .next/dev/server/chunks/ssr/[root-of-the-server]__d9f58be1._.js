@@ -496,7 +496,18 @@ async function createOrder(items) {
         })
     });
     if (!res.ok) {
-        throw new Error(`Erro ao criar pedido: ${res.status}`);
+        // O NestJS devolve algo tipo { message: "Estoque insuficiente: ..." }
+        // — mostramos essa mensagem real pro cliente em vez de um texto genérico.
+        let message = `Erro ao criar pedido (${res.status})`;
+        try {
+            const body = await res.json();
+            if (body?.message) {
+                message = Array.isArray(body.message) ? body.message.join(", ") : body.message;
+            }
+        } catch  {
+        // Resposta não veio em JSON — mantém a mensagem genérica acima
+        }
+        throw new Error(message);
     }
     return res.json();
 }

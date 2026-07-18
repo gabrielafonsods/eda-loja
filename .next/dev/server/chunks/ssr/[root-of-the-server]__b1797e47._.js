@@ -207,7 +207,18 @@ async function createOrder(items) {
         })
     });
     if (!res.ok) {
-        throw new Error(`Erro ao criar pedido: ${res.status}`);
+        // O NestJS devolve algo tipo { message: "Estoque insuficiente: ..." }
+        // — mostramos essa mensagem real pro cliente em vez de um texto genérico.
+        let message = `Erro ao criar pedido (${res.status})`;
+        try {
+            const body = await res.json();
+            if (body?.message) {
+                message = Array.isArray(body.message) ? body.message.join(", ") : body.message;
+            }
+        } catch  {
+        // Resposta não veio em JSON — mantém a mensagem genérica acima
+        }
+        throw new Error(message);
     }
     return res.json();
 }
@@ -356,8 +367,8 @@ function CartModal() {
             window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappMessage}`, "_blank");
             clearCart();
             setOpen(false);
-        } catch  {
-            setError("Não conseguimos registrar o pedido agora. Tente novamente em alguns instantes.");
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Não conseguimos registrar o pedido agora. Tente novamente em alguns instantes.");
         } finally{
             setSending(false);
         }
@@ -376,13 +387,13 @@ function CartModal() {
                         children: totalQuantity
                     }, void 0, false, {
                         fileName: "[project]/components/cart/cart-modal.tsx",
-                        lineNumber: 63,
+                        lineNumber: 65,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/cart/cart-modal.tsx",
-                lineNumber: 56,
+                lineNumber: 58,
                 columnNumber: 7
             }, this),
             open && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -393,7 +404,7 @@ function CartModal() {
                         children: "Seu pedido"
                     }, void 0, false, {
                         fileName: "[project]/components/cart/cart-modal.tsx",
-                        lineNumber: 71,
+                        lineNumber: 73,
                         columnNumber: 11
                     }, this),
                     items.length === 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -401,7 +412,7 @@ function CartModal() {
                         children: "Nenhum item adicionado ainda."
                     }, void 0, false, {
                         fileName: "[project]/components/cart/cart-modal.tsx",
-                        lineNumber: 74,
+                        lineNumber: 76,
                         columnNumber: 13
                     }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Fragment"], {
                         children: [
@@ -418,7 +429,7 @@ function CartModal() {
                                                         children: item.productTitle
                                                     }, void 0, false, {
                                                         fileName: "[project]/components/cart/cart-modal.tsx",
-                                                        lineNumber: 84,
+                                                        lineNumber: 86,
                                                         columnNumber: 23
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -426,7 +437,7 @@ function CartModal() {
                                                         children: item.variantTitle
                                                     }, void 0, false, {
                                                         fileName: "[project]/components/cart/cart-modal.tsx",
-                                                        lineNumber: 85,
+                                                        lineNumber: 87,
                                                         columnNumber: 23
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -438,14 +449,14 @@ function CartModal() {
                                                                 children: "-"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/components/cart/cart-modal.tsx",
-                                                                lineNumber: 87,
+                                                                lineNumber: 89,
                                                                 columnNumber: 25
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                                 children: item.quantity
                                                             }, void 0, false, {
                                                                 fileName: "[project]/components/cart/cart-modal.tsx",
-                                                                lineNumber: 95,
+                                                                lineNumber: 97,
                                                                 columnNumber: 25
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -454,19 +465,19 @@ function CartModal() {
                                                                 children: "+"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/components/cart/cart-modal.tsx",
-                                                                lineNumber: 96,
+                                                                lineNumber: 98,
                                                                 columnNumber: 25
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/components/cart/cart-modal.tsx",
-                                                        lineNumber: 86,
+                                                        lineNumber: 88,
                                                         columnNumber: 23
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/components/cart/cart-modal.tsx",
-                                                lineNumber: 83,
+                                                lineNumber: 85,
                                                 columnNumber: 21
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -476,18 +487,18 @@ function CartModal() {
                                                 children: "✕"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/cart/cart-modal.tsx",
-                                                lineNumber: 106,
+                                                lineNumber: 108,
                                                 columnNumber: 21
                                             }, this)
                                         ]
                                     }, `${item.variantId}:${item.saleType}`, true, {
                                         fileName: "[project]/components/cart/cart-modal.tsx",
-                                        lineNumber: 79,
+                                        lineNumber: 81,
                                         columnNumber: 19
                                     }, this))
                             }, void 0, false, {
                                 fileName: "[project]/components/cart/cart-modal.tsx",
-                                lineNumber: 77,
+                                lineNumber: 79,
                                 columnNumber: 15
                             }, this),
                             error && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -495,7 +506,7 @@ function CartModal() {
                                 children: error
                             }, void 0, false, {
                                 fileName: "[project]/components/cart/cart-modal.tsx",
-                                lineNumber: 118,
+                                lineNumber: 120,
                                 columnNumber: 17
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -505,7 +516,7 @@ function CartModal() {
                                 children: sending ? "Enviando..." : "Enviar pedido pelo WhatsApp"
                             }, void 0, false, {
                                 fileName: "[project]/components/cart/cart-modal.tsx",
-                                lineNumber: 121,
+                                lineNumber: 123,
                                 columnNumber: 15
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -514,7 +525,7 @@ function CartModal() {
                                 children: "Esvaziar carrinho"
                             }, void 0, false, {
                                 fileName: "[project]/components/cart/cart-modal.tsx",
-                                lineNumber: 128,
+                                lineNumber: 130,
                                 columnNumber: 15
                             }, this)
                         ]
@@ -522,13 +533,13 @@ function CartModal() {
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/cart/cart-modal.tsx",
-                lineNumber: 70,
+                lineNumber: 72,
                 columnNumber: 9
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/components/cart/cart-modal.tsx",
-        lineNumber: 55,
+        lineNumber: 57,
         columnNumber: 5
     }, this);
 }
