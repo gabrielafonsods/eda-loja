@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@plugin "@tailwindcss/container-queries";
+@plugin "@tailwindcss/typography";
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+  Paleta "Embalagens Dos Anjos" — tirada direto da logo:
+  fundo pêssego acolhedor, marrom terracota nas ilustrações/CTAs,
+  tinta marrom escura no texto (mais suave que preto puro).
+*/
+@theme {
+  --color-cream: #fbf2e7;
+  --color-peach: #f5dcc0;
+  --color-peach-dark: #e8c49f;
+  --color-terracotta: #9c6b41;
+  --color-terracotta-dark: #7a5230;
+  --color-ink: #362519;
+
+  --font-display: var(--font-caveat);
+  --font-sans: var(--font-poppins);
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-peach-dark, currentColor);
+  }
+
+  body {
+    background-color: var(--color-cream);
+    color: var(--color-ink);
+    font-family: var(--font-sans), sans-serif;
+  }
+}
+
+@supports (font: -apple-system-body) and (-webkit-appearance: none) {
+  img[loading="lazy"] {
+    clip-path: inset(0.6px);
+  }
+}
+
+a,
+input,
+button {
+  @apply focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:ring-offset-2 focus-visible:ring-offset-cream;
+}
+
+/* Classe utilitária pro título manuscrito, tipo a logo — usar com moderação */
+.font-display {
+  font-family: var(--font-display), cursive;
+}
+
+/* Classe utilitária pro rótulo em caixa alta espaçada, tipo "EMBALAGENS" na logo */
+.label-eyebrow {
+  @apply text-xs font-semibold uppercase tracking-[0.15em] text-terracotta;
+}
